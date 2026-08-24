@@ -98,3 +98,24 @@ test("keeps session scores and daily training totals consistent", async () => {
   assert.match(page, /session\.durationSeconds \* index/);
   assert.match(page, /metric-line-ticks/);
 });
+
+test("is ready for static GitHub Pages deployment", async () => {
+  const [nextConfig, viteConfig, layout, workflow] = await Promise.all([
+    readFile(new URL("../next.config.ts", import.meta.url), "utf8"),
+    readFile(new URL("../vite.config.ts", import.meta.url), "utf8"),
+    readFile(new URL("../app/layout.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../.github/workflows/deploy-pages.yml", import.meta.url), "utf8"),
+  ]);
+
+  assert.match(nextConfig, /GITHUB_PAGES === "true"/);
+  assert.match(nextConfig, /output: isGitHubPages \? "export"/);
+  assert.match(nextConfig, /assetPrefix: pagesPath/);
+  assert.match(viteConfig, /base: pagesBase/);
+  assert.match(viteConfig, /`\/\$\{repositoryName\}\/`/);
+  assert.match(layout, /`\$\{basePath\}\/favicon\.svg`/);
+  assert.match(layout, /export const dynamic = "force-static"/);
+  assert.match(workflow, /branches:\s*\n\s*- github-pages/);
+  assert.match(workflow, /actions\/configure-pages@v5/);
+  assert.match(workflow, /path: \.\/dist\/client/);
+  assert.match(workflow, /actions\/deploy-pages@v5/);
+});

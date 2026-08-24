@@ -1,23 +1,17 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
+const repositoryName = process.env.GITHUB_REPOSITORY?.split("/").at(-1) ?? "zivra";
+const basePath = process.env.GITHUB_PAGES === "true" ? `/${repositoryName}` : "";
 
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
+export const dynamic = "force-static";
 
 export const metadata: Metadata = {
   title: "Zivra | Maandelijkse voortgang",
   description: "Een eenvoudig patiëntenoverzicht voor CVA-revalidatie.",
   icons: {
-    icon: "/favicon.svg",
-    shortcut: "/favicon.svg",
+    icon: `${basePath}/favicon.svg`,
+    shortcut: `${basePath}/favicon.svg`,
   },
 };
 
@@ -28,11 +22,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="nl">
-      <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
-      >
-        {children}
-      </body>
+      <body>{children}</body>
     </html>
   );
 }
