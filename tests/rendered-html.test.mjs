@@ -100,11 +100,12 @@ test("keeps session scores and daily training totals consistent", async () => {
 });
 
 test("is ready for static GitHub Pages deployment", async () => {
-  const [nextConfig, viteConfig, layout, workflow] = await Promise.all([
+  const [nextConfig, viteConfig, layout, workflow, packageJson] = await Promise.all([
     readFile(new URL("../next.config.ts", import.meta.url), "utf8"),
     readFile(new URL("../vite.config.ts", import.meta.url), "utf8"),
     readFile(new URL("../app/layout.tsx", import.meta.url), "utf8"),
     readFile(new URL("../.github/workflows/deploy-pages.yml", import.meta.url), "utf8"),
+    readFile(new URL("../package.json", import.meta.url), "utf8"),
   ]);
 
   assert.match(nextConfig, /GITHUB_PAGES === "true"/);
@@ -118,4 +119,5 @@ test("is ready for static GitHub Pages deployment", async () => {
   assert.match(workflow, /actions\/configure-pages@v5/);
   assert.match(workflow, /path: \.\/dist\/client/);
   assert.match(workflow, /actions\/deploy-pages@v5/);
+  assert.doesNotMatch(packageJson, /@rolldown\/binding-win32-x64-msvc/);
 });
