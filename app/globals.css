@@ -3217,7 +3217,7 @@ button.activity-segment:focus-visible {
 
   .day-overview-panel {
     display: grid;
-    grid-template-rows: auto auto auto auto auto minmax(0, 1fr);
+    grid-template-rows: auto auto auto auto minmax(0, 1fr);
     gap: 6px;
     height: 100%;
     min-height: 0;
@@ -3575,7 +3575,7 @@ button.activity-segment:focus-visible {
   }
 
   .day-overview-panel {
-    grid-template-rows: auto auto auto auto auto minmax(0, 1fr);
+    grid-template-rows: auto auto auto auto minmax(0, 1fr);
     gap: 8px;
     padding: 14px 15px;
   }
@@ -4066,4 +4066,260 @@ p {
   font-family: var(--font-body) !important;
   font-weight: 400;
   line-height: 1.45;
+}
+
+/* Duidelijke terugnavigatie in de paarse Zivra-huisstijl. */
+.back-button {
+  gap: 8px;
+  min-height: 40px;
+  margin-bottom: 10px;
+  padding: 5px 14px 5px 6px;
+  border: 1px solid rgba(81, 56, 238, 0.22);
+  border-radius: 12px;
+  background: var(--purple-soft);
+  color: var(--purple-dark);
+  box-shadow: 0 4px 12px rgba(81, 56, 238, 0.09);
+  transition: background 160ms ease, border-color 160ms ease, box-shadow 160ms ease, transform 160ms ease;
+}
+
+.back-button > svg {
+  box-sizing: content-box;
+  width: 18px;
+  height: 18px;
+  padding: 4px;
+  border-radius: 8px;
+  background: var(--purple);
+  color: #fff;
+  box-shadow: 0 3px 8px rgba(81, 56, 238, 0.22);
+}
+
+.back-button:hover {
+  border-color: rgba(81, 56, 238, 0.4);
+  background: #ebe7ff;
+  box-shadow: 0 6px 16px rgba(81, 56, 238, 0.14);
+  transform: translateY(-1px);
+}
+
+.back-button:active {
+  box-shadow: 0 3px 8px rgba(81, 56, 238, 0.1);
+  transform: translateY(0);
+}
+
+.back-button:focus-visible {
+  outline: 3px solid rgba(81, 56, 238, 0.2);
+  outline-offset: 2px;
+}
+
+@media (min-width: 981px) {
+  .redesigned-session-page .back-button,
+  .activity-detail-page .back-button {
+    min-height: 38px;
+    margin-bottom: 7px;
+    padding: 4px 13px 4px 5px;
+    font-size: 12px;
+  }
+}
+
+@media (max-height: 800px) and (min-width: 981px) {
+  .redesigned-session-page .back-button,
+  .activity-detail-page .back-button {
+    min-height: 36px;
+    margin-bottom: 5px;
+  }
+
+  .redesigned-session-grid {
+    height: calc(100vh - 208px);
+  }
+}
+
+/* Interactieve weekdetails vullen de vrije ruimte onder het maanddiagram. */
+.macro-summary > span:last-child {
+  display: grid;
+  gap: 2px;
+  text-align: right;
+}
+
+.macro-summary > span:last-child small {
+  color: var(--muted);
+  font-size: 8px;
+  font-weight: 700;
+}
+
+button.activity-day {
+  appearance: none;
+  padding: 0;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: inherit;
+  cursor: pointer;
+}
+
+button.activity-day:focus-visible {
+  outline: 3px solid rgba(81, 56, 238, 0.22);
+  outline-offset: 2px;
+}
+
+.month-week .day-label {
+  margin: 2px 3px 0;
+  border-radius: 8px;
+  transition: background 150ms ease, color 150ms ease;
+}
+
+.month-week:hover .day-label,
+.month-week:focus-visible .day-label,
+.month-week.selected .day-label {
+  background: var(--purple-soft);
+  color: var(--purple-dark);
+}
+
+.month-week.selected .activity-stack,
+.month-week.selected .rest-bar {
+  box-shadow: 0 0 0 3px rgba(81, 56, 238, 0.2);
+}
+
+.month-week-detail {
+  display: grid;
+  grid-template-columns: minmax(116px, 0.72fr) minmax(0, 2fr);
+  align-items: stretch;
+  gap: 10px;
+  min-height: 112px;
+  padding: 10px;
+  border: 1px solid #ded9ff;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #f8f6ff, #fff);
+}
+
+.month-week-detail.is-empty {
+  border-color: #dfe2e9;
+  background: #f7f8fa;
+}
+
+.month-week-detail-heading {
+  display: grid;
+  align-content: center;
+  gap: 4px;
+  padding: 4px 7px;
+}
+
+.month-week-detail-heading > span {
+  color: var(--purple);
+  font-size: 9px;
+  font-weight: 800;
+}
+
+.month-week-detail-heading > strong {
+  font-size: 14px;
+}
+
+.month-week-detail-heading > small {
+  color: var(--muted);
+  font-size: 8px;
+  line-height: 1.35;
+}
+
+.month-week-stats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 7px;
+}
+
+.month-week-stats > div {
+  display: grid;
+  align-content: center;
+  gap: 2px;
+  min-width: 0;
+  padding: 7px 8px;
+  border: 1px solid #e7e4f5;
+  border-radius: 9px;
+  background: rgba(255, 255, 255, 0.9);
+}
+
+.month-week-stats span,
+.month-week-stats small {
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 7px;
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.month-week-stats strong {
+  color: var(--ink);
+  font-size: 12px;
+}
+
+@media (max-height: 850px) and (min-width: 981px) {
+  .month-week-detail {
+    min-height: 92px;
+    padding: 7px;
+  }
+
+  .month-week-stats {
+    gap: 5px;
+  }
+
+  .month-week-stats > div {
+    padding: 5px 6px;
+  }
+
+  .month-week-detail-heading > strong {
+    font-size: 12px;
+  }
+}
+
+@media (max-width: 760px) {
+  .month-week-detail {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Alle hoverinformatie staat rechtsboven van de aanwijzer en boven de dashboarddata. */
+.activity-tooltip,
+.summary-tooltip {
+  position: fixed;
+  top: var(--tooltip-top, 120px);
+  right: auto;
+  bottom: auto;
+  left: var(--tooltip-left, 24px);
+  z-index: 1000;
+  margin: 0;
+  pointer-events: none;
+  transform: translateY(-100%);
+}
+
+.activity-tooltip {
+  width: min(205px, calc(100vw - 16px));
+}
+
+.summary-tooltip {
+  width: min(250px, calc(100vw - 16px));
+}
+
+/* De trainingsgrafiek gebruikt de volledige resterende kolomhoogte. */
+@media (min-width: 981px) {
+  .day-overview-panel > .metric-detail-panel {
+    align-self: stretch;
+    height: 100%;
+    min-height: 0;
+  }
+
+  .day-overview-panel .metric-chart {
+    display: grid;
+    grid-template-columns: 44px minmax(0, 1fr);
+    grid-template-rows: minmax(0, 1fr) 20px;
+    height: 100%;
+    min-height: 0;
+  }
+
+  .day-overview-panel .metric-y-axis,
+  .day-overview-panel .metric-plot {
+    grid-row: 1;
+    height: 100%;
+    min-height: 0;
+  }
+
 }

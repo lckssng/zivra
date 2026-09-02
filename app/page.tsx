@@ -429,11 +429,11 @@ const monthActivity = [
     state: "progress" as ProgressState,
     reach: 88,
     weeks: [
-      { label: "1 jun", minutes: 74, compensated: 18 },
-      { label: "8 jun", minutes: 96, compensated: 21 },
-      { label: "15 jun", minutes: 82, compensated: 16 },
-      { label: "22 jun", minutes: 108, compensated: 19 },
-      { label: "29 jun", minutes: 42, compensated: 8 },
+      { label: "1 jun", minutes: 74, compensated: 18, sessions: 4, activeDays: 3, achieved: 20, target: 24, reach: 80 },
+      { label: "8 jun", minutes: 96, compensated: 21, sessions: 5, activeDays: 4, achieved: 26, target: 30, reach: 84 },
+      { label: "15 jun", minutes: 82, compensated: 16, sessions: 4, activeDays: 3, achieved: 21, target: 24, reach: 86 },
+      { label: "22 jun", minutes: 108, compensated: 19, sessions: 6, activeDays: 5, achieved: 33, target: 36, reach: 88 },
+      { label: "29 jun", minutes: 42, compensated: 8, sessions: 2, activeDays: 2, achieved: 11, target: 12, reach: 87 },
     ],
   },
   {
@@ -441,22 +441,22 @@ const monthActivity = [
     state: "stable" as ProgressState,
     reach: 96,
     weeks: [
-      { label: "6 jul", minutes: 88, compensated: 22 },
-      { label: "13 jul", minutes: 104, compensated: 24 },
-      { label: "20 jul", minutes: 91, compensated: 27 },
-      { label: "27 jul", minutes: 79, compensated: 25 },
+      { label: "6 jul", minutes: 88, compensated: 22, sessions: 4, activeDays: 3, achieved: 22, target: 24, reach: 90 },
+      { label: "13 jul", minutes: 104, compensated: 24, sessions: 5, activeDays: 4, achieved: 27, target: 30, reach: 93 },
+      { label: "20 jul", minutes: 91, compensated: 27, sessions: 5, activeDays: 4, achieved: 24, target: 30, reach: 96 },
+      { label: "27 jul", minutes: 79, compensated: 25, sessions: 4, activeDays: 3, achieved: 19, target: 24, reach: 95 },
     ],
   },
   {
     label: "Augustus 2026",
     state: "attention" as ProgressState,
-    reach: 92,
+    reach: 104,
     weeks: [
-      { label: "3 aug", minutes: 18, compensated: 0 },
-      { label: "10 aug", minutes: 46, compensated: 20 },
-      { label: "17 aug", minutes: 0, compensated: 0 },
-      { label: "24 aug", minutes: 0, compensated: 0 },
-      { label: "31 aug", minutes: 0, compensated: 0 },
+      { label: "3 aug", minutes: 18, compensated: 0, sessions: 1, activeDays: 1, achieved: 17, target: 18, reach: 94 },
+      { label: "10 aug", minutes: 46, compensated: 20, sessions: 4, activeDays: 2, achieved: 61, target: 72, reach: 104 },
+      { label: "17 aug", minutes: 0, compensated: 0, sessions: 0, activeDays: 0, achieved: 0, target: 0, reach: null },
+      { label: "24 aug", minutes: 0, compensated: 0, sessions: 0, activeDays: 0, achieved: 0, target: 0, reach: null },
+      { label: "31 aug", minutes: 0, compensated: 0, sessions: 0, activeDays: 0, achieved: 0, target: 0, reach: null },
     ],
   },
 ];
@@ -739,14 +739,29 @@ function MonthlyActivityChart({
   patient: Patient;
 }) {
   const [monthIndex, setMonthIndex] = useState(2);
+  const [selectedWeekIndex, setSelectedWeekIndex] = useState(1);
+  const [hoveredWeekIndex, setHoveredWeekIndex] = useState<number | null>(null);
   const month = monthActivity[monthIndex];
   const selectedState = monthIndex === 2 ? patient.state : month.state;
+  const inspectedWeek = month.weeks[hoveredWeekIndex ?? selectedWeekIndex] ?? month.weeks[0];
+  const inspectedPercentage = inspectedWeek.target > 0 ? Math.round((inspectedWeek.achieved / inspectedWeek.target) * 100) : null;
+  const monthMinutes = month.weeks.reduce((total, week) => total + week.minutes, 0);
+  const monthSessions = month.weeks.reduce((total, week) => total + week.sessions, 0);
+  const formatMinutes = (minutes: number) => minutes >= 60
+    ? `${Math.floor(minutes / 60)}u ${minutes % 60}m`
+    : `${minutes} min`;
+
+  useEffect(() => {
+    const latestActiveWeek = month.weeks.reduce((latest, week, index) => week.minutes > 0 ? index : latest, 0);
+    setSelectedWeekIndex(latestActiveWeek);
+    setHoveredWeekIndex(null);
+  }, [monthIndex, month.weeks]);
 
   return (
     <div className="macro-module">
       <div className="macro-summary">
         <StatusBadge state={selectedState} />
-        <span><strong>{month.reach}°</strong> maximaal bewegingsbereik</span>
+        <span><strong>{month.reach}°</strong> maximaal bewegingsbereik<small>{formatMinutes(monthMinutes)} · {monthSessions} sessies</small></span>
       </div>
       <div className="period-navigation month-navigation" aria-label="Navigeer tussen maanden">
         <button onClick={() => setMonthIndex((current) => Math.max(0, current - 1))} disabled={monthIndex === 0} aria-label="Vorige maand"><ChevronLeft width={18} height={18} strokeWidth={2} aria-hidden="true" /></button>
@@ -757,10 +772,21 @@ function MonthlyActivityChart({
       <div className="bar-chart month-bars" aria-label={`Trainingsactiviteiten in ${month.label}`}>
         <div className="bar-y-axis"><span>3u</span><span>2u</span><span>1u</span><span>0u</span></div>
         <div className="bar-plot month-plot">
-          {month.weeks.map((week) => {
+          {month.weeks.map((week, weekIndex) => {
             const regular = Math.max(0, week.minutes - week.compensated);
             return (
-              <div className="activity-day month-week" key={week.label}>
+              <button
+                type="button"
+                className={`activity-day month-week ${selectedWeekIndex === weekIndex ? "selected" : ""}`}
+                key={week.label}
+                onClick={() => setSelectedWeekIndex(weekIndex)}
+                onMouseEnter={() => setHoveredWeekIndex(weekIndex)}
+                onMouseLeave={() => setHoveredWeekIndex(null)}
+                onFocus={() => setHoveredWeekIndex(weekIndex)}
+                onBlur={() => setHoveredWeekIndex(null)}
+                aria-pressed={selectedWeekIndex === weekIndex}
+                aria-label={`Week van ${week.label}: ${week.minutes > 0 ? `${week.minutes} minuten, ${week.sessions} sessies` : "geen training"}`}
+              >
                 <div className="day-bar-shell">
                   {week.minutes > 0 ? (
                     <div className="activity-stack" style={{ height: `${Math.max(8, (week.minutes / 180) * 100)}%` }}>
@@ -770,13 +796,28 @@ function MonthlyActivityChart({
                   ) : <div className="rest-bar" />}
                 </div>
                 <div className="day-label"><strong>{week.label}</strong><span>{week.minutes} min</span></div>
-                <div className="activity-tooltip" role="tooltip"><strong>Week van {week.label}</strong><span>{week.minutes} minuten totaal</span><small>{week.compensated} minuten met compensatie</small></div>
-              </div>
+                <div className="activity-tooltip" role="tooltip"><strong>Week van {week.label}</strong><span>{week.minutes > 0 ? `${formatMinutes(week.minutes)} · ${week.activeDays} actieve ${week.activeDays === 1 ? "dag" : "dagen"}` : "Geen training geregistreerd"}</span>{week.minutes > 0 && <><small>{week.sessions} sessies · {Math.round((week.achieved / week.target) * 100)}% behaald</small><small>{week.compensated} minuten met compensatie</small></>}</div>
+              </button>
             );
           })}
         </div>
       </div>
 
+      <section className={`month-week-detail ${inspectedWeek.minutes === 0 ? "is-empty" : ""}`} aria-label={`Weekdetails voor ${inspectedWeek.label}`}>
+        <div className="month-week-detail-heading">
+          <span>Weekdetails</span>
+          <strong>Week van {inspectedWeek.label}</strong>
+          <small>{hoveredWeekIndex !== null ? "Voorbeeld tijdens hover" : "Klik op een week om deze vast te zetten"}</small>
+        </div>
+        <div className="month-week-stats">
+          <div><span>Trainingstijd</span><strong>{formatMinutes(inspectedWeek.minutes)}</strong></div>
+          <div><span>Actieve dagen</span><strong>{inspectedWeek.activeDays}</strong></div>
+          <div><span>Sessies</span><strong>{inspectedWeek.sessions}</strong></div>
+          <div><span>Behaald</span><strong>{inspectedPercentage === null ? "—" : `${inspectedPercentage}%`}</strong><small>{inspectedWeek.target > 0 ? `${inspectedWeek.achieved} van ${inspectedWeek.target}` : "Geen doelen"}</small></div>
+          <div><span>Compensatie</span><strong>{inspectedWeek.minutes > 0 ? `${inspectedWeek.compensated} min` : "—"}</strong></div>
+          <div><span>Max. bereik</span><strong>{inspectedWeek.reach === null ? "—" : `${inspectedWeek.reach}°`}</strong></div>
+        </div>
+      </section>
     </div>
   );
 }
@@ -1073,7 +1114,6 @@ function MetricDetailChart({
           })}
           {definition.chart === "line" && <div className="metric-line-ticks" aria-hidden="true">{times.map((time) => <span key={time}>{time}</span>)}</div>}
         </div>
-        <div className="metric-x-axis-title">Tijd in sessie · {times[0]} tot {times[times.length - 1]}</div>
       </div>
     </section>
   );
@@ -1160,6 +1200,19 @@ function SessionDetailRedesigned({
   const dayScore = metricKeys.reduce((sum, key) => sum + dayResults[key].achieved, 0);
   const dayMaximum = metricKeys.reduce((sum, key) => sum + dayResults[key].target, 0);
   const dayPercentage = Math.round((dayScore / dayMaximum) * 100);
+  const dayDurationSeconds = daySessions.reduce((sum, item) => sum + item.durationSeconds, 0);
+  const dayCompensationCount = daySessions.filter((item) => item.compensation).length;
+  const dayHasCompensation = dayCompensationCount > 0;
+  const dayMinRom = Math.min(...daySessions.map((item) => item.minRom));
+  const dayMaxRom = Math.max(...daySessions.map((item) => item.maxRom));
+  const dayMovements = Array.from(new Set(daySessions.map((item) => item.movement)));
+  const dayMovementLabel = dayMovements.map((movement) => movement
+    .replace("Reiken boven schouderhoogte", "Boven schouderhoogte")
+    .replace("Voorwaarts reiken en grijpen", "Voorwaarts reiken")
+    .replace("Gericht aanraken en terugbrengen", "Aanraken & terugbrengen")
+    .replace("Draaien van de onderarm", "Onderarm draaien"))
+    .join(" · ");
+  const dayJoints = Array.from(new Set(daySessions.map((item) => item.romJoint)));
 
   const openMedia = (moment = "00:00") => {
     setMediaMoment(moment);
@@ -1176,11 +1229,11 @@ function SessionDetailRedesigned({
         </div>
       </header>
 
-      <section className="session-summary-grid four-columns" aria-label="Samenvatting van de geselecteerde sessie en dag">
-        <SessionSummaryCard icon={<CircleCheck width={20} height={20} strokeWidth={2} aria-hidden="true" />} tone="green" label="Behaald" value={`${activeSession.score} van ${activeSession.maximum}`} detail={`in ${formatDuration(activeSession.durationSeconds)}`} more="Het aantal geslaagde doelen binnen deze geselecteerde activiteit, afgezet tegen het aantal geplande doelen." />
-        <SessionSummaryCard icon={<Body width={22} height={22} aria-hidden="true" />} tone={activeSession.compensation ? "red" : "green"} label="Compensatie" value={activeSession.compensation ? "Ja" : "Nee"} detail={activeSession.compensation ? "2 momenten gemarkeerd" : "Niet waargenomen"} more="Compensatie is ja of nee. De tijdstippen zijn verderop gekoppeld aan het video- en modelbeeld." />
-        <SessionSummaryCard icon={<Arm width={22} height={22} aria-hidden="true" />} tone="blue" label="Beweging & bereik" value={`${activeSession.minRom}° – ${activeSession.maxRom}°`} detail={activeSession.romJoint} more={`${activeSession.movement}. Dit bereik hoort specifiek bij ${activeSession.romJoint.toLowerCase()}.`} />
-        <SessionSummaryCard icon={<ChartLine width={22} height={22} aria-hidden="true" />} tone="purple" label="Percentage getraind" value={`${dayPercentage}%`} detail={`${dayScore} van ${dayMaximum} doelen vandaag`} more={`Dit percentage telt de vier bewegingsdoelen op over ${daySessions.length} sessies: ${dayScore} behaald van ${dayMaximum} gepland.`} />
+      <section className="session-summary-grid four-columns" aria-label="Detailgegevens van de hele trainingsdag">
+        <SessionSummaryCard icon={<CircleCheck width={20} height={20} strokeWidth={2} aria-hidden="true" />} tone="green" label="Behaald" value={`${dayScore} van ${dayMaximum}`} detail={`Detailgegevens hele dag · ${formatDuration(dayDurationSeconds)}`} more={`Totaal over ${daySessions.length} sessies vandaag: ${dayScore} bewegingsdoelen behaald van ${dayMaximum} gepland.`} />
+        <SessionSummaryCard icon={<Body width={22} height={22} aria-hidden="true" />} tone={dayHasCompensation ? "red" : "green"} label="Compensatie" value={dayHasCompensation ? "Ja" : "Nee"} detail={`Detailgegevens hele dag · ${dayCompensationCount} van ${daySessions.length} sessies`} more={dayHasCompensation ? `Compensatie is waargenomen in ${dayCompensationCount} van de ${daySessions.length} sessies van vandaag.` : `In geen van de ${daySessions.length} sessies van vandaag is compensatie waargenomen.`} />
+        <SessionSummaryCard icon={<Arm width={22} height={22} aria-hidden="true" />} tone="blue" label="Beweging & bereik" value={`${dayMinRom}° – ${dayMaxRom}° · ${dayMovementLabel}`} detail={`Detailgegevens hele dag · ${dayMovements.length} ${dayMovements.length === 1 ? "beweging" : "bewegingen"}`} more={`Het totale bereik van vandaag loopt van ${dayMinRom}° tot ${dayMaxRom}°. Gemeten bij ${dayJoints.join(" en ").toLowerCase()}.`} />
+        <SessionSummaryCard icon={<ChartLine width={22} height={22} aria-hidden="true" />} tone="purple" label="Percentage getraind" value={`${dayPercentage}%`} detail={`Detailgegevens hele dag · ${dayScore} van ${dayMaximum}`} more={`Dit percentage telt de vier bewegingsdoelen op over ${daySessions.length} sessies: ${dayScore} behaald van ${dayMaximum} gepland.`} />
       </section>
 
       <div className="session-content-grid redesigned-session-grid">
@@ -1246,6 +1299,35 @@ export default function ZivraDashboard() {
   const [view, setView] = useState<"overview" | "patient" | "session">("overview");
   const [selectedPatient, setSelectedPatient] = useState<Patient>(patients[0]);
   const [selectedSession, setSelectedSession] = useState<Session>(sessions[0]);
+
+  useEffect(() => {
+    const root = document.documentElement;
+    const placeTooltip = (clientX: number, clientY: number) => {
+      const left = Math.max(8, Math.min(clientX + 16, window.innerWidth - 268));
+      const top = Math.max(88, Math.min(clientY - 14, window.innerHeight - 8));
+      root.style.setProperty("--tooltip-left", `${left}px`);
+      root.style.setProperty("--tooltip-top", `${top}px`);
+    };
+    const handlePointerMove = (event: PointerEvent) => {
+      const target = event.target instanceof Element ? event.target.closest(".activity-day, .info-card") : null;
+      if (target) placeTooltip(event.clientX, event.clientY);
+    };
+    const handleFocus = (event: FocusEvent) => {
+      const target = event.target instanceof Element ? event.target.closest(".activity-day, .info-card") : null;
+      if (!target) return;
+      const bounds = target.getBoundingClientRect();
+      placeTooltip(bounds.right, bounds.top);
+    };
+
+    document.addEventListener("pointermove", handlePointerMove, { passive: true });
+    document.addEventListener("focusin", handleFocus);
+    return () => {
+      document.removeEventListener("pointermove", handlePointerMove);
+      document.removeEventListener("focusin", handleFocus);
+      root.style.removeProperty("--tooltip-left");
+      root.style.removeProperty("--tooltip-top");
+    };
+  }, []);
 
   const goHome = () => setView("overview");
   const selectPatient = (patient: Patient) => {
