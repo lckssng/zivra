@@ -1,6 +1,6 @@
 "use client";
 
-import { type CSSProperties, type ReactNode, useEffect, useMemo, useState } from "react";
+import { type CSSProperties, type ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import {
   Activity,
   ArrowLeft,
@@ -17,6 +17,7 @@ import {
   Info,
   LogOut,
   Minus,
+  Pause,
   Play,
   RotateCcw,
   Search,
@@ -27,7 +28,6 @@ import {
 import {
   Arm,
   Body,
-  ChartLine,
   Joints,
   PhysicalTherapy,
   RegularPatient,
@@ -213,7 +213,7 @@ const sessions: Session[] = [
     romJoint: "Schouderflexie rechterarm",
     score: 19,
     maximum: 26,
-    durationSeconds: 134,
+    durationSeconds: 40,
     activityMinutes: 12,
     minRom: 42,
     maxRom: 104,
@@ -235,7 +235,7 @@ const sessions: Session[] = [
     romJoint: "Schouderflexie en elleboogstrekking",
     score: 32,
     maximum: 36,
-    durationSeconds: 156,
+    durationSeconds: 40,
     activityMinutes: 10,
     minRom: 38,
     maxRom: 98,
@@ -257,7 +257,7 @@ const sessions: Session[] = [
     romJoint: "Schouderflexie rechterarm",
     score: 21,
     maximum: 28,
-    durationSeconds: 171,
+    durationSeconds: 40,
     activityMinutes: 8,
     minRom: 34,
     maxRom: 92,
@@ -279,7 +279,7 @@ const sessions: Session[] = [
     romJoint: "Schouderflexie en elleboogstrekking",
     score: 21,
     maximum: 28,
-    durationSeconds: 148,
+    durationSeconds: 40,
     activityMinutes: 16,
     minRom: 39,
     maxRom: 98,
@@ -301,7 +301,7 @@ const sessions: Session[] = [
     romJoint: "Onderarmrotatie rechterarm",
     score: 19,
     maximum: 26,
-    durationSeconds: 162,
+    durationSeconds: 40,
     activityMinutes: 18,
     minRom: 35,
     maxRom: 94,
@@ -323,7 +323,7 @@ const sessions: Session[] = [
     romJoint: "Schouderabductie rechterarm",
     score: 22,
     maximum: 28,
-    durationSeconds: 151,
+    durationSeconds: 40,
     activityMinutes: 14,
     minRom: 37,
     maxRom: 101,
@@ -345,7 +345,7 @@ const sessions: Session[] = [
     romJoint: "Elleboogstrekking rechterarm",
     score: 18,
     maximum: 24,
-    durationSeconds: 139,
+    durationSeconds: 40,
     activityMinutes: 11,
     minRom: 31,
     maxRom: 91,
@@ -367,7 +367,7 @@ const sessions: Session[] = [
     romJoint: "Schouderflexie rechterarm",
     score: 20,
     maximum: 30,
-    durationSeconds: 173,
+    durationSeconds: 40,
     activityMinutes: 15,
     minRom: 29,
     maxRom: 88,
@@ -632,7 +632,7 @@ function Overview({ onSelectPatient }: { onSelectPatient: (patient: Patient) => 
             <span>Hoe gaat het deze maand?</span>
             <span aria-hidden="true" />
           </div>
-          <div className="patient-rows">
+          <div className="patient-rows" role="rowgroup" tabIndex={0} aria-label="Scroll door de patiëntenlijst">
             {filteredPatients.map((patient) => (
               <button
                 className="patient-row"
@@ -893,6 +893,11 @@ function formatTimestamp(seconds: number) {
   return `${minutes.toString().padStart(2, "0")}:${remainder.toString().padStart(2, "0")}`;
 }
 
+function timestampToSeconds(timestamp: string) {
+  const [minutes = 0, seconds = 0] = timestamp.split(":").map(Number);
+  return (Number.isFinite(minutes) ? minutes : 0) * 60 + (Number.isFinite(seconds) ? seconds : 0);
+}
+
 function SessionSummaryCard({
   icon,
   tone,
@@ -982,7 +987,9 @@ const metricDefinitions: Record<MetricKey, {
 type MetricResult = { achieved: number; target: number };
 
 const metricKeys: MetricKey[] = ["forward", "shoulder", "return", "touch"];
+const metricMomentSeconds = [5, 10, 17, 21, 29, 35];
 
+// Sessies met een eigen meetreeks overschrijven hier de algemene grafiekwaarden.
 const sessionMetricSeries: Partial<Record<number, Record<MetricKey, number[]>>> = {
   821: {
     forward: [27, 32, 38, 43, 42, 46],
@@ -1004,6 +1011,7 @@ const sessionMetricSeries: Partial<Record<number, Record<MetricKey, number[]>>> 
   },
 };
 
+// Deze dagtotalen voeden de doelkaarten en het trainingspercentage boven de grafiek.
 const dailyMetricResults: Record<string, Record<MetricKey, MetricResult>> = {
   "2026-08-11": {
     forward: { achieved: 6, target: 6 },
@@ -1067,7 +1075,8 @@ function MetricDetailChart({
     const adjusted = value + sessionOffset;
     return Math.max(0, Math.min(definition.maximum, Number(adjusted.toFixed(1))));
   });
-  const times = values.map((_, index) => formatTimestamp(Math.round((session.durationSeconds * index) / (values.length - 1))));
+  // Gebruik vaste momenten binnen de video zodat dezelfde meting in iedere training direct terug te vinden is.
+  const times = values.map((_, index) => formatTimestamp(Math.min(metricMomentSeconds[index] ?? session.durationSeconds, session.durationSeconds)));
   const lastValue = values[values.length - 1];
   const trendThreshold = metric === "return" ? 0.05 : 0.5;
   const trendForSegment = (value: number, nextValue: number | undefined) => {
@@ -1120,57 +1129,117 @@ function MetricDetailChart({
 }
 
 function MediaTriptych({ session, moment, onClose }: { session: Session; moment: string; onClose: () => void }) {
+  const cameraVideo = useRef<HTMLVideoElement>(null);
+  const modelVideo = useRef<HTMLVideoElement>(null);
+  const vrVideo = useRef<HTMLVideoElement>(null);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [currentTime, setCurrentTime] = useState(0);
+  const [duration, setDuration] = useState(0);
+  const requestedTime = useMemo(() => timestampToSeconds(moment), [moment]);
+
+  // Behandel de drie videobronnen als één speler met een gedeelde tijdpositie.
+  const getVideos = () => [cameraVideo.current, modelVideo.current, vrVideo.current]
+    .filter((video): video is HTMLVideoElement => video !== null);
+
+  const seekVideos = (seconds: number) => {
+    const maximum = duration || 40;
+    const nextTime = Math.max(0, Math.min(seconds, maximum));
+    getVideos().forEach((video) => {
+      if (video.readyState > 0) video.currentTime = Math.min(nextTime, video.duration || maximum);
+    });
+    setCurrentTime(nextTime);
+  };
+
+  const handleLoadedMetadata = (event: React.SyntheticEvent<HTMLVideoElement>) => {
+    const videoDuration = event.currentTarget.duration;
+    if (!Number.isFinite(videoDuration)) return;
+    setDuration((knownDuration) => knownDuration === 0 ? videoDuration : Math.min(knownDuration, videoDuration));
+    const startTime = Math.min(requestedTime, Math.max(0, videoDuration - 0.05));
+    event.currentTarget.currentTime = startTime;
+    setCurrentTime(startTime);
+  };
+
+  // Het camerabeeld is de hoofdklok en corrigeert alleen merkbare afwijkingen in de andere video’s.
+  const handleTimeUpdate = (event: React.SyntheticEvent<HTMLVideoElement>) => {
+    const nextTime = event.currentTarget.currentTime;
+    setCurrentTime(nextTime);
+    [modelVideo.current, vrVideo.current].forEach((video) => {
+      if (video && video.readyState > 0 && Math.abs(video.currentTime - nextTime) > 0.15) {
+        video.currentTime = Math.min(nextTime, video.duration || nextTime);
+      }
+    });
+  };
+
+  const togglePlayback = async () => {
+    const videos = getVideos();
+    if (isPlaying) {
+      videos.forEach((video) => video.pause());
+      setIsPlaying(false);
+      return;
+    }
+
+    const shouldRestart = duration > 0 && currentTime >= duration - 0.08;
+    if (shouldRestart) seekVideos(0);
+    const playFrom = shouldRestart ? 0 : currentTime;
+    videos.forEach((video) => {
+      if (video.readyState > 0) video.currentTime = Math.min(playFrom, video.duration || playFrom);
+    });
+    await Promise.all(videos.map((video) => video.play()));
+    setIsPlaying(true);
+  };
+
+  const stopPlayback = () => {
+    getVideos().forEach((video) => video.pause());
+    setIsPlaying(false);
+  };
+
+  const closeMedia = () => {
+    stopPlayback();
+    onClose();
+  };
+
+  const displayTime = formatTimestamp(Math.floor(currentTime));
+  const displayDuration = formatTimestamp(Math.round(duration || 40));
+  const progress = duration > 0 ? (currentTime / duration) * 100 : 0;
+
   return (
-    <div className="modal-backdrop media-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose(); }}>
+    <div className="modal-backdrop media-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) closeMedia(); }}>
       <div className="media-modal" role="dialog" aria-modal="true" aria-labelledby="media-title">
         <div className="modal-header">
-          <div><h2 id="media-title">Beweging vanuit drie bronnen</h2><span className="heading-context">Sessie {session.id} · {moment}</span></div>
-          <button onClick={onClose} aria-label="Sluit beelden"><X width={16} height={16} strokeWidth={2} aria-hidden="true" /> Sluiten</button>
+          <div><h2 id="media-title">Beweging vanuit drie bronnen</h2><span className="heading-context">Sessie {session.id} · {displayDuration}</span></div>
+          <button onClick={closeMedia} aria-label="Sluit beelden"><X width={16} height={16} strokeWidth={2} aria-hidden="true" /> Sluiten</button>
         </div>
         <div className="media-triptych">
           <section className="media-panel video-panel">
             <div className="media-panel-heading"><span>1</span><div><strong>Video</strong><small>Camerabeeld therapeut</small></div></div>
             <div className="video-visual">
-              <div className="video-room-line" />
-              <div className="stick-figure video-stick" aria-label="Stickfigure van de armbeweging in het videobeeld">
-                <i className="stick-head" /><i className="stick-torso" /><i className="stick-hips" />
-                <i className="stick-left-upper-arm" /><i className="stick-left-forearm" />
-                <i className="stick-right-upper-arm" /><i className="stick-right-forearm" />
-                <i className="stick-left-leg" /><i className="stick-right-leg" />
-              </div>
-              <span className="media-timecode">{moment}</span>
+              <video ref={cameraVideo} className="source-video" src="videos/demo-2-camera.mp4" preload="metadata" muted playsInline onLoadedMetadata={handleLoadedMetadata} onTimeUpdate={handleTimeUpdate} onPlay={() => setIsPlaying(true)} onPause={() => setIsPlaying(false)} onEnded={stopPlayback} aria-label="Normaal camerabeeld van de oefening" />
+              <span className="media-timecode">{displayTime}</span>
               {session.compensation && <span className="compensation-callout">Rompcompensatie</span>}
             </div>
           </section>
           <section className="media-panel model-panel">
             <div className="media-panel-heading"><span>2</span><div><strong>Model</strong><small>Gemeten armbeweging</small></div></div>
             <div className="model-visual">
-              <div className="demo-grid-lines" />
-              <div className="stick-figure model-stick" aria-label="Driedimensionaal stickfigure van de armbeweging">
-                <i className="stick-head" /><i className="stick-torso" /><i className="stick-hips" />
-                <i className="stick-left-upper-arm" /><i className="stick-left-forearm" />
-                <i className="stick-right-upper-arm" /><i className="stick-right-forearm" />
-                <i className="stick-left-leg" /><i className="stick-right-leg" />
-              </div>
-              <span className="movement-path">{session.maxRom}°</span>
+              <video ref={modelVideo} className="source-video" src="videos/demo-2-model.mp4" preload="metadata" muted playsInline onLoadedMetadata={handleLoadedMetadata} aria-label="Animatie van het bewegingsmodel" />
+              <span className="media-timecode">{displayTime}</span>
             </div>
           </section>
           <section className="media-panel game-panel">
-            <div className="media-panel-heading"><span>3</span><div><strong>Game</strong><small>{session.game}</small></div></div>
+            <div className="media-panel-heading"><span>3</span><div><strong>VR-video</strong><small>{session.game}</small></div></div>
             <div className="game-visual">
-              <span className="game-score">{session.score}/{session.maximum}</span>
-              <i className="balloon one" /><i className="balloon two" /><i className="balloon three" />
-              <div className="game-crosshair"><i /><i /></div>
-              <span className="game-instruction">Reik naar het volgende doel</span>
+              <video ref={vrVideo} className="source-video" src="videos/demo-2-vr.mp4" preload="metadata" muted playsInline onLoadedMetadata={handleLoadedMetadata} aria-label={`VR-video van ${session.game}`} />
+              <span className="game-score"><small>Totale score</small><strong>{session.score}/{session.maximum}</strong></span>
+              <span className="media-timecode">{displayTime}</span>
             </div>
           </section>
         </div>
         <div className="triptych-controls">
-          <button className="play-control" type="button"><Play width={15} height={15} fill="currentColor" strokeWidth={1.8} aria-hidden="true" /> Afspelen</button>
-          <span>{moment}</span><div className="timeline"><i style={{ width: "58%" }} /></div><span>{formatDuration(session.durationSeconds)}</span>
+          <button className="play-control" type="button" onClick={togglePlayback}>{isPlaying ? <Pause width={15} height={15} fill="currentColor" strokeWidth={1.8} aria-hidden="true" /> : <Play width={15} height={15} fill="currentColor" strokeWidth={1.8} aria-hidden="true" />} {isPlaying ? "Pauzeren" : "Afspelen"}</button>
+          <span>{displayTime}</span><input className="timeline" type="range" min="0" max={duration || 40} step="0.01" value={Math.min(currentTime, duration || 40)} onChange={(event) => seekVideos(Number(event.target.value))} aria-label={`Videopositie, ${displayTime} van ${displayDuration}`} style={{ "--timeline-progress": `${progress}%` } as CSSProperties} /><span>{displayDuration}</span>
           <strong>Compensatie: {session.compensation ? "ja" : "nee"}</strong>
         </div>
-        <p className="demo-disclaimer">Demoweergave — video, model en game lopen in het uiteindelijke platform tijdsynchroon.</p>
+        <p className="demo-disclaimer">Camerabeeld, bewegingsmodel en VR-video lopen tijdsynchroon.</p>
       </div>
     </div>
   );
@@ -1192,6 +1261,7 @@ function SessionDetailRedesigned({
 
   useEffect(() => setActiveSession(session), [session]);
 
+  // De kaarten tonen dagtotalen, terwijl de grafiek de gekozen sessie blijft volgen.
   const daySessions = useMemo(
     () => sessions.filter((item) => item.dateKey === activeSession.dateKey),
     [activeSession.dateKey],
@@ -1229,11 +1299,10 @@ function SessionDetailRedesigned({
         </div>
       </header>
 
-      <section className="session-summary-grid four-columns" aria-label="Detailgegevens van de hele trainingsdag">
+      <section className="session-summary-grid three-columns" aria-label="Detailgegevens van de hele trainingsdag">
         <SessionSummaryCard icon={<CircleCheck width={20} height={20} strokeWidth={2} aria-hidden="true" />} tone="green" label="Behaald" value={`${dayScore} van ${dayMaximum}`} detail={`Detailgegevens hele dag · ${formatDuration(dayDurationSeconds)}`} more={`Totaal over ${daySessions.length} sessies vandaag: ${dayScore} bewegingsdoelen behaald van ${dayMaximum} gepland.`} />
         <SessionSummaryCard icon={<Body width={22} height={22} aria-hidden="true" />} tone={dayHasCompensation ? "red" : "green"} label="Compensatie" value={dayHasCompensation ? "Ja" : "Nee"} detail={`Detailgegevens hele dag · ${dayCompensationCount} van ${daySessions.length} sessies`} more={dayHasCompensation ? `Compensatie is waargenomen in ${dayCompensationCount} van de ${daySessions.length} sessies van vandaag.` : `In geen van de ${daySessions.length} sessies van vandaag is compensatie waargenomen.`} />
         <SessionSummaryCard icon={<Arm width={22} height={22} aria-hidden="true" />} tone="blue" label="Beweging & bereik" value={`${dayMinRom}° – ${dayMaxRom}° · ${dayMovementLabel}`} detail={`Detailgegevens hele dag · ${dayMovements.length} ${dayMovements.length === 1 ? "beweging" : "bewegingen"}`} more={`Het totale bereik van vandaag loopt van ${dayMinRom}° tot ${dayMaxRom}°. Gemeten bij ${dayJoints.join(" en ").toLowerCase()}.`} />
-        <SessionSummaryCard icon={<ChartLine width={22} height={22} aria-hidden="true" />} tone="purple" label="Percentage getraind" value={`${dayPercentage}%`} detail={`Detailgegevens hele dag · ${dayScore} van ${dayMaximum}`} more={`Dit percentage telt de vier bewegingsdoelen op over ${daySessions.length} sessies: ${dayScore} behaald van ${dayMaximum} gepland.`} />
       </section>
 
       <div className="session-content-grid redesigned-session-grid">

@@ -378,7 +378,10 @@ h2 {
   box-shadow: var(--shadow);
 }
 
+/* Alleen de patiëntenrijen scrollen; de filters en uitleg blijven zichtbaar. */
 .patient-panel {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
   height: calc(100vh - 250px);
   min-height: 500px;
   padding: 15px 16px 12px;
@@ -462,9 +465,48 @@ h2 {
   letter-spacing: 0.07em;
 }
 
+.patient-table {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  min-height: 0;
+  overflow: hidden;
+}
+
 .patient-rows {
   display: grid;
+  min-height: 0;
+  align-content: start;
   gap: 5px;
+  padding-right: 8px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-color: #b9b0f2 #f0f1f6;
+  scrollbar-gutter: stable;
+  scrollbar-width: thin;
+}
+
+.patient-rows::-webkit-scrollbar {
+  width: 9px;
+}
+
+.patient-rows::-webkit-scrollbar-track {
+  border-radius: 999px;
+  background: #f0f1f6;
+}
+
+.patient-rows::-webkit-scrollbar-thumb {
+  border: 2px solid #f0f1f6;
+  border-radius: 999px;
+  background: #b9b0f2;
+}
+
+.patient-rows::-webkit-scrollbar-thumb:hover {
+  background: var(--purple);
+}
+
+.patient-rows:focus-visible {
+  outline: 3px solid rgba(87, 55, 255, 0.18);
+  outline-offset: 2px;
 }
 
 .patient-row {
@@ -1721,17 +1763,38 @@ button.week-day {
 }
 
 .timeline {
-  height: 7px;
-  border-radius: 5px;
-  background: #dedff0;
+  width: 100%;
+  height: 8px;
+  padding: 0;
+  border: 0;
+  border-radius: 999px;
+  appearance: none;
+  background: linear-gradient(to right, var(--purple) 0 var(--timeline-progress, 0%), #dedff0 var(--timeline-progress, 0%) 100%);
+  cursor: pointer;
 }
 
-.timeline i {
-  display: block;
-  width: 32%;
-  height: 100%;
-  border-radius: inherit;
+.timeline::-webkit-slider-thumb {
+  width: 17px;
+  height: 17px;
+  border: 3px solid #fff;
+  border-radius: 50%;
+  appearance: none;
   background: var(--purple);
+  box-shadow: 0 2px 8px rgba(78, 51, 255, 0.34);
+}
+
+.timeline::-moz-range-thumb {
+  width: 12px;
+  height: 12px;
+  border: 3px solid #fff;
+  border-radius: 50%;
+  background: var(--purple);
+  box-shadow: 0 2px 8px rgba(78, 51, 255, 0.34);
+}
+
+.timeline:focus-visible {
+  outline: 3px solid rgba(87, 55, 255, 0.22);
+  outline-offset: 4px;
 }
 
 .demo-disclaimer {
@@ -1782,7 +1845,9 @@ button.week-day {
   .detail-grid,
   .session-content-grid,
   .flow-grid { height: auto; }
-  .patient-table { overflow-x: auto; }
+  .patient-panel { display: block; overflow: visible; }
+  .patient-table { display: block; overflow-x: auto; }
+  .patient-rows { padding-right: 0; overflow-y: visible; }
   .patient-table-head,
   .patient-row { min-width: 860px; }
   .detail-grid,
@@ -2792,6 +2857,16 @@ button.activity-segment:focus-visible {
   position: relative;
   min-height: 420px;
   overflow: hidden;
+  background: #101218;
+}
+
+.source-video {
+  display: block;
+  width: 100%;
+  height: 100%;
+  min-height: 420px;
+  object-fit: contain;
+  background: #101218;
 }
 
 .video-visual {
@@ -2839,8 +2914,8 @@ button.activity-segment:focus-visible {
   font-weight: 900;
 }
 
-.media-timecode { right: 12px; bottom: 12px; padding: 6px 8px; background: rgba(16, 18, 23, 0.75); }
-.compensation-callout { top: 18px; left: 18px; padding: 7px 9px; background: var(--red); }
+.media-timecode { right: 12px; bottom: 12px; z-index: 2; padding: 6px 8px; background: rgba(16, 18, 23, 0.78); }
+.compensation-callout { top: 18px; left: 18px; z-index: 2; padding: 7px 9px; background: var(--red); }
 
 .model-visual {
   background: radial-gradient(circle at 50% 35%, #f8f8fc 0, #e4e5eb 68%, #d5d7df 100%);
@@ -2905,7 +2980,9 @@ button.activity-segment:focus-visible {
 
 .game-crosshair i:first-child { width: 68px; height: 1px; }
 .game-crosshair i:last-child { width: 1px; height: 68px; }
-.game-score { top: 14px; left: 14px; padding: 8px 10px; background: rgba(31, 20, 100, 0.58); font-size: 14px; }
+.game-score { top: 14px; left: 14px; z-index: 2; display: grid; gap: 1px; padding: 8px 10px; background: rgba(31, 20, 100, 0.78); }
+.game-score small { font-size: 8px; font-weight: 700; }
+.game-score strong { font-size: 15px; line-height: 1.1; }
 .game-instruction { right: 14px; bottom: 14px; left: 14px; padding: 10px; background: rgba(31, 20, 100, 0.66); text-align: center; }
 
 .triptych-controls {
@@ -2924,6 +3001,12 @@ button.activity-segment:focus-visible {
   background: var(--red-soft);
   color: var(--red);
   font-size: 8px;
+}
+
+.triptych-controls .play-control {
+  min-width: 96px;
+  justify-content: center;
+  cursor: pointer;
 }
 
 @media (max-width: 1450px) {
@@ -3482,14 +3565,14 @@ button.activity-segment:focus-visible {
 }
 
 /* Restored session sizing */
-.session-summary-grid.four-columns {
-  grid-template-columns: 0.85fr 0.8fr 1.35fr 0.9fr;
+.session-summary-grid.three-columns {
+  grid-template-columns: 1fr 1fr 1.5fr;
   align-items: stretch;
   gap: 10px;
   margin-bottom: 10px;
 }
 
-.session-summary-grid.four-columns .info-card {
+.session-summary-grid.three-columns .info-card {
   min-height: 78px;
   padding: 10px 12px;
 }
@@ -3535,7 +3618,7 @@ button.activity-segment:focus-visible {
     font-size: 11px;
   }
 
-  .session-summary-grid.four-columns .summary-card-icon {
+  .session-summary-grid.three-columns .summary-card-icon {
     flex-basis: 38px;
     width: 38px;
     height: 38px;
@@ -3543,23 +3626,23 @@ button.activity-segment:focus-visible {
     font-size: 14px;
   }
 
-  .session-summary-grid.four-columns .info-card > div {
+  .session-summary-grid.three-columns .info-card > div {
     gap: 3px;
   }
 
-  .session-summary-grid.four-columns .info-card p {
+  .session-summary-grid.three-columns .info-card p {
     font-size: 9px;
   }
 
-  .session-summary-grid.four-columns .info-card > div strong {
+  .session-summary-grid.three-columns .info-card > div strong {
     font-size: 13px;
   }
 
-  .session-summary-grid.four-columns .info-card > div small {
+  .session-summary-grid.three-columns .info-card > div small {
     font-size: 8px;
   }
 
-  .session-summary-grid.four-columns .info-indicator {
+  .session-summary-grid.three-columns .info-indicator {
     top: 7px;
     right: 7px;
     width: 16px;
@@ -3784,7 +3867,7 @@ button.activity-segment:focus-visible {
     font-size: 28px;
   }
 
-  .session-summary-grid.four-columns .info-card {
+  .session-summary-grid.three-columns .info-card {
     min-height: 70px;
   }
 

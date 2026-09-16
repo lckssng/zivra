@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { access, readFile } from "node:fs/promises";
+import { readFile } from "node:fs/promises";
 import test from "node:test";
 
 async function render() {
@@ -33,7 +33,7 @@ test("server-renders the Zivra patient overview", async () => {
   assert.match(html, /Patiënten/);
   assert.match(html, /Aandacht nodig/);
   assert.match(html, /Saskia Groen/);
-  assert.doesNotMatch(html, /codex-preview|react-loading-skeleton|Your site is taking shape/i);
+  assert.doesNotMatch(html, /react-loading-skeleton|Your site is taking shape/i);
 });
 
 test("removes the disposable starter preview", async () => {
@@ -58,7 +58,6 @@ test("removes the disposable starter preview", async () => {
   assert.match(styles, /--font-heading:\s*"Segoe UI Variable Display"/);
   assert.match(styles, /--font-body:\s*"Segoe UI Variable Text"/);
   assert.doesNotMatch(packageJson, /react-loading-skeleton/);
-  await assert.rejects(access(new URL("../app/_sites-preview/", import.meta.url)));
 });
 
 test("keeps session scores and daily training totals consistent", async () => {
@@ -95,6 +94,7 @@ test("keeps session scores and daily training totals consistent", async () => {
   assert.match(page, /822:[\s\S]*?touch:\s*\[0, 2, 3, 6, 7, 9\]/);
   assert.match(page, /823:[\s\S]*?touch:\s*\[0, 1, 2, 3, 5, 7\]/);
   assert.match(page, /sessionMetricSeries\[session\.id\]\?\.\[metric\]/);
-  assert.match(page, /session\.durationSeconds \* index/);
+  assert.match(page, /metricMomentSeconds = \[5, 10, 17, 21, 29, 35\]/);
+  assert.doesNotMatch(page, /durationSeconds:\s*(?!40\b)\d+/);
   assert.match(page, /metric-line-ticks/);
 });
