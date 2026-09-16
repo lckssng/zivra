@@ -1,17 +1,97 @@
-## lokaal
+# Zivra dashboardprototype
+
+Zivra is een klikbaar dashboardprototype voor het bekijken van trainingsresultaten van CVA-patiënten. Het dashboard bevat een patiëntenoverzicht, patiëntdetails, sessiegrafieken en een gesynchroniseerde weergave van camera-, model- en VR-video.
+
+## Projectstructuur
+
+### Broncode
+
+| Map | Uitleg |
+| --- | --- |
+| `app/` | Bevat de volledige gebruikersinterface, de voorbeelddata, de pagina-opbouw en alle dashboardstijlen. |
+| `public/` | Bevat bestanden die rechtstreeks door de browser worden geladen, zoals het favicon en de drie demonstratievideo’s. |
+| `public/videos/` | Bevat het camerabeeld, het bewegingsmodel en de VR-opname die synchroon worden afgespeeld. |
+| `tests/` | Bevat controles voor de gerenderde pagina, sessiescores, dagtotalen en belangrijke interface-afspraken. |
+| `worker/` | Bevat het startpunt voor de serveromgeving en de afhandeling van afbeeldingsoptimalisatie. |
+| `db/` | Bevat de databasehelper en het Drizzle-databaseschema; de huidige dashboarddata staat nog rechtstreeks in `app/page.tsx`. |
+| `drizzle/` | Bevat metadata voor toekomstige databasewijzigingen en migraties. |
+| `examples/` | Bevat een los D1-databasevoorbeeld en maakt geen onderdeel uit van de actieve dashboardpagina. |
+| `build/` | Is momenteel leeg en bevat geen actieve applicatiecode. |
+
+### Automatisch aangemaakte mappen
+
+Deze mappen hoef je normaal gesproken niet handmatig aan te passen:
+
+| Map | Uitleg |
+| --- | --- |
+| `node_modules/` | Geïnstalleerde npm-pakketten; wordt opnieuw aangemaakt met `npm install`. |
+| `dist/` | Productie-uitvoer van de build; wordt opnieuw aangemaakt met `npm run build`. |
+| `.vinext/` | Tijdelijke Vinext-bestanden die tijdens ontwikkelen en bouwen worden gegenereerd. |
+| `.wrangler/` | Lokale status en tijdelijke bestanden voor de Cloudflare-ontwikkelomgeving. |
+| `.git/` | Lokale Git-geschiedenis en repository-instellingen. |
+
+## Belangrijkste bestanden
+
+| Bestand | Uitleg |
+| --- | --- |
+| `app/page.tsx` | Hoofdbestand van het dashboard met patiëntdata, sessiedata, grafieken, navigatie en videosynchronisatie. |
+| `app/globals.css` | Alle kleuren, lettertypen, afmetingen, layouts, grafieken, tooltips en responsive stijlen. |
+| `app/layout.tsx` | Algemene HTML-opbouw en metadata, waaronder de paginatitel en het favicon. |
+| `public/favicon.svg` | Het paarse Zivra-favicon met de letter Z. |
+| `public/videos/demo-2-camera.mp4` | Normaal camerabeeld van de training. |
+| `public/videos/demo-2-model.mp4` | Animatie van het gemeten bewegingsmodel. |
+| `public/videos/demo-2-vr.mp4` | Opname van de VR-omgeving. |
+| `tests/rendered-html.test.mjs` | Controleert of het dashboard rendert en of scores, dagtotalen en grafiekdata consistent blijven. |
+| `vite.config.ts` | Configureert Vinext, de lokale ontwikkelserver en de productiebuild. |
+| `worker/index.ts` | Server-entrypoint dat verzoeken naar de Vinext-app doorstuurt. |
+| `db/index.ts` | Maakt een Drizzle-verbinding wanneer later een D1-database wordt gekoppeld. |
+| `db/schema.ts` | Definieert de databasetabellen. |
+| `drizzle.config.ts` | Configuratie voor het genereren van databasemigraties. |
+| `package.json` | Bevat de scripts, projectnaam en gebruikte dependencies. |
+| `package-lock.json` | Legt de exacte dependencyversies vast en wordt door npm bijgewerkt. |
+| `tsconfig.json` | TypeScript-instellingen en het `@/` importpad. |
+| `next.config.ts` | Basisconfiguratie voor de Next/Vinext-app. |
+| `eslint.config.mjs` | Regels voor statische codecontrole. |
+| `postcss.config.mjs` | Verwerkt de CSS tijdens ontwikkelen en bouwen. |
+| `.gitignore` | Bepaalt welke lokale en gegenereerde bestanden niet in Git terechtkomen. |
+| `.gitattributes` | Houdt regeleinden van tekstbestanden consistent binnen Git. |
+
+## Waar pas je wat aan?
+
+- Nieuwe patiënten, sessies of grafiekwaarden: `app/page.tsx`.
+- Kleuren, typografie, afmetingen of layout: `app/globals.css`.
+- Camerabeeld, modelvideo of VR-video vervangen: `public/videos/` en indien nodig de bestandsnamen in `MediaTriptych` in `app/page.tsx`.
+- Metadata of favicon aanpassen: `app/layout.tsx` en `public/favicon.svg`.
+- Een controle toevoegen of bestaande rekenregels bewaken: `tests/rendered-html.test.mjs`.
+- Een echte database aansluiten: `db/`, `drizzle.config.ts` en de bindings in `vite.config.ts`.
+
+## Lokaal starten
 
 Node.js 22.13 of nieuwer is vereist.
+
+Gebruik in Windows PowerShell:
+
+```powershell
+npm.cmd install
+npm.cmd run dev
+```
+
+Gebruik in een andere terminal:
 
 ```bash
 npm install
 npm run dev
-npm.cmd run dev
 ```
 
 Open daarna `http://localhost:3000`.
 
-## controle testjes
+## Controleren
 
-```bash
-npm test
+Voer de build en tests uit voordat je wijzigingen oplevert:
+
+```powershell
+npm.cmd run build
+node --test tests/rendered-html.test.mjs
 ```
+
+De interface is primair ontworpen voor een desktopscherm. Alle patiëntgegevens zijn fictief en worden uitsluitend voor demonstratie en gebruikerstests gebruikt.
