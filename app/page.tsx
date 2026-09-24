@@ -536,17 +536,27 @@ function Sidebar({ onHome }: { onHome: () => void }) {
   );
 }
 
+function surnameSortKey(fullName: string) {
+  const nameParts = fullName.trim().split(/\s+/);
+  return nameParts[nameParts.length - 1] ?? fullName;
+}
+
 function Overview({ onSelectPatient }: { onSelectPatient: (patient: Patient) => void }) {
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState<"all" | ProgressState>("all");
   const [monthIndex, setMonthIndex] = useState(2);
 
   const filteredPatients = useMemo(() => {
-    return patients.filter((patient) => {
-      const matchesQuery = patient.name.toLowerCase().includes(query.toLowerCase());
-      const matchesFilter = filter === "all" || patient.state === filter;
-      return matchesQuery && matchesFilter;
-    });
+    return patients
+      .filter((patient) => {
+        const matchesQuery = patient.name.toLowerCase().includes(query.toLowerCase());
+        const matchesFilter = filter === "all" || patient.state === filter;
+        return matchesQuery && matchesFilter;
+      })
+      .sort((first, second) => {
+        const surnameOrder = surnameSortKey(first.name).localeCompare(surnameSortKey(second.name), "nl-NL", { sensitivity: "base" });
+        return surnameOrder || first.name.localeCompare(second.name, "nl-NL", { sensitivity: "base" });
+      });
   }, [query, filter]);
 
   const counts = {

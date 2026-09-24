@@ -94,4 +94,66 @@ npm.cmd run build
 node --test tests/rendered-html.test.mjs
 ```
 
+## Publiceren met GitHub Pages
+
+Dit project wordt via de branch `github-pages` en een GitHub Actions-workflow gepubliceerd. Kies in GitHub dus **GitHub Actions** als publicatiebron en niet **Deploy from a branch**.
+
+### Eenmalig instellen
+
+1. Open de repository op GitHub.
+2. Ga naar **Settings** en vervolgens naar **Pages**.
+3. Kies onder **Build and deployment** bij **Source** voor **GitHub Actions**.
+4. Controleer of de branch `github-pages` de volgende bestanden bevat:
+   - `.github/workflows/deploy-pages.yml` voor het bouwen en publiceren;
+   - `next.config.ts` met de instellingen voor een statische export en het pad `/zivra`.
+5. Laat de workflow een eerste keer uitvoeren door iets naar de branch `github-pages` te pushen of start hem handmatig via **Actions**.
+
+Meer uitleg staat in de officiële GitHub-documentatie over [het instellen van een publicatiebron](https://docs.github.com/en/pages/getting-started-with-github-pages/configuring-a-publishing-source-for-your-github-pages-site) en [het publiceren met een aangepaste workflow](https://docs.github.com/en/pages/getting-started-with-github-pages/using-custom-workflows-with-github-pages).
+
+### Nieuwe wijzigingen online zetten
+
+1. Rond het werk af op de branch `main` en controleer het project lokaal:
+
+   ```powershell
+   npm.cmd install
+   npm.cmd run build
+   node --test tests/rendered-html.test.mjs
+   ```
+
+2. Commit en push de wijzigingen naar `main`:
+
+   ```powershell
+   git status
+   git add .
+   git commit -m "Beschrijf hier de wijziging"
+   git push origin main
+   ```
+
+3. Voeg daarna `main` samen met de publicatiebranch en push die branch:
+
+   ```powershell
+   git switch github-pages
+   git pull origin github-pages
+   git merge main
+   git push origin github-pages
+   git switch main
+   ```
+
+4. Open op GitHub het tabblad **Actions** en kies de workflow **Publiceer Zivra op GitHub Pages**. De publicatie is gereed zodra de workflow groen is.
+5. Open daarna [https://lckssng.github.io/zivra/](https://lckssng.github.io/zivra/). Het kan na een geslaagde workflow nog kort duren voordat de nieuwste versie zichtbaar is.
+
+### Workflow handmatig starten
+
+Open **Actions**, kies **Publiceer Zivra op GitHub Pages**, klik op **Run workflow**, selecteer de branch `github-pages` en bevestig met **Run workflow**.
+
+### Problemen oplossen
+
+- Controleer bij een rode workflow in **Actions** welke stap is mislukt en open daar de foutmelding.
+- Geeft `npm ci` een fout over `package-lock.json`, voer dan op `main` `npm.cmd install` uit en commit ook het aangepaste lockbestand.
+- Ontbreken de video’s online, controleer dan of de bestanden in `public/videos/` door Git worden gevolgd.
+- Is de pagina leeg, ongestyled of geeft hij een 404, controleer dan of **Source** nog op **GitHub Actions** staat en of de GitHub Pages-instellingen in `next.config.ts` behouden zijn.
+- Ontstaat tijdens `git merge main` een conflict in `next.config.ts` of `.github/workflows/deploy-pages.yml`, behoud dan de GitHub Pages-configuratie van de branch `github-pages`.
+
+Gebruik niet `git push origin main:github-pages`: daarmee kunnen de speciale publicatiebestanden op de branch `github-pages` verloren gaan. Voeg `main` altijd samen via de stappen hierboven.
+
 De interface is primair ontworpen voor een desktopscherm. Alle patiëntgegevens zijn fictief en worden uitsluitend voor demonstratie en gebruikerstests gebruikt.
